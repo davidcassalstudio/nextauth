@@ -1,51 +1,43 @@
-import { hash } from "bcryptjs";
-import mongoose from "mongoose";
 import { connectToDB } from "@/lib/utils";
+import { NextResponse } from "next/server";
+import bcrypt from "bcrypt";
 import User from "@/models/user";
 
-export const handler = async (req, res) => {
-  connectToDB().catch((err) => res.json(err));
+export async function POST(req) {
+  try {
+    const { username, nome, email, senha } = await req.json();
+    const exists = await User.findOne({ $or: [{ username }, { email }] });
 
-  if (req.method === "POST") {
-    if (!req.body) return res.status(400).json({ error: "Faltam dados" });
-
-    const { username, nome, email, senha } = req.body;
-
-    const userExists = await User.findOne({ email });
-
-    if (userExists) {
-      return res.status(409).json({ error: "Email já existe" });
-    } else {
-      if (senha.lenght < 6)
-        return res.status(409).json({ error: "Senha muito curta" });
-
-      const criptSenha = await hash(senha, 20);
-
-      User.create(
-        { username, nome, email, senha: criptSenha },
-        (error, data) => {
-          if (error && error instanceof mongoose.Error.ValidationError) {
-            for (let field in error.errors) {
-              const msg = error.errors[field].message;
-              return res.status(409).json({ error: msg });
-            }
-          }
-
-          const user = {
-            _id: data._id,
-            username: data.username,
-            nome: data.nome,
-            email: data.email,
-          };
-
-          return res.status(201).json({
-            success: true,
-            user,
-          });
-        },
+    if (exists) {
+      return NextResponse.json(
+        { message: "Nome de usuário ou e-mail já existem" },
+        { status: 500 },
       );
     }
-  } else {
-    res.status(405).json({ error: "Método não permitido" });
+
+    const hashedPassword = await bcrypt.hash(senha, 10);
+
+    await connectToDB();
+    await User.create({
+      username,
+      nome,
+      email,
+      senha: hashedPassword,
+    });
+
+    console.log("Username", username);
+    console.log("Nome", nome);
+    console.log("Email", email);
+    console.log("Senha", senha);
+
+    return NextResponse.json(
+      { message: "Usuário registrado" },
+      { status: 201 },
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Ocorreu algum erro" },
+      { status: 500 },
+    );
   }
-};
+}

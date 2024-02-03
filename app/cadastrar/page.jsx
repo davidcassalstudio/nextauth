@@ -14,22 +14,37 @@ export default function Cadastrar() {
   });
 
   const [submitError, setSubmitError] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleCadastro = async (e) => {
     e.preventDefault();
 
+    if (
+      !data.username ||
+      !data.nome ||
+      !data.email ||
+      !data.senha ||
+      !data.confirmarSenha
+    ) {
+      setSubmitError("Todos os campos são obrigatórios");
+      // return;
+    }
+
+    if (data.senha.length < 6) {
+      setSubmitError("A senha deve ter pelo menos 6 caracteres");
+      // return;
+    }
+
+    if (data.senha !== data.confirmarSenha) {
+      setSubmitError("As senhas devem ser iguais");
+      // return;
+    }
+
     try {
-      setLoading(true);
-      const apiResponse = await axios.post(
-        "http://localhost:3000/api/cadastro",
-        data,
-      );
+      const apiResponse = await axios.post("/api/cadastro", data);
 
       if (apiResponse?.data?.success) {
-        // router.push("/login");
-        console.log(data);
+        router.push("/login");
       }
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -37,8 +52,6 @@ export default function Cadastrar() {
         setSubmitError(errorMsg);
       }
     }
-
-    setLoading(false);
   };
 
   const handleInputChange = (e) => {
@@ -91,13 +104,11 @@ export default function Cadastrar() {
           name="confirmarSenha"
           id="confirmarSenha"
           placeholder="Repita sua senha"
-          value={data.senha}
+          value={data.confirmarSenha}
           onChange={handleInputChange}
           required
         />
-        <button type="submit" disabled={loading}>
-          Cadastrar
-        </button>
+        <button type="submit">Cadastrar</button>
 
         {submitError && <span>{submitError}</span>}
       </form>
