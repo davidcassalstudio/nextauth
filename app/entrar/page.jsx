@@ -32,7 +32,7 @@ export default function Entrar() {
         setSubmitError("Credenciais inválidas");
         return;
       } else {
-        router.replace("/");
+        router.push("/");
       }
     } catch (error) {
       setSubmitError("Erro no login");
